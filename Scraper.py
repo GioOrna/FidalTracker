@@ -122,6 +122,7 @@ def run_full_scrape():
         "ALL", "JUN", "PRO",
         "SEN", "MAS"]
     all_results = []
+    
     requests.Session().headers.update({'User-Agent': 'Mozilla/5.0'})
     # Configure retry strategy
     retry_strategy = Retry(

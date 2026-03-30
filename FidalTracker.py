@@ -42,6 +42,7 @@ def load_data():
 
 st.title("FidalTracker")
 st.caption(f"Dati aggiornati al: {get_data_time_last_update()}")
+st.markdown("[Hai trovato un bug o hai un suggerimento?](https://docs.google.com/forms/d/e/1FAIpQLScxYm4VHJun_DYzTH_XszFf92WKAs35j4wMJT_nF-tMMmqPYA/viewform?usp=dialog)")
 
 df = load_data()
 st.session_state['fidal_df'] = df

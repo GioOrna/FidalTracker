@@ -1,6 +1,6 @@
 pandas
 requests
 beautifulsoup4
-streamlit
+streamlit==1.30.0
 altair==4.2.2
 pytz

@@ -118,7 +118,7 @@ if not df.empty:
     config = {
      "Data Inizio": st.column_config.DateColumn("Inizio", format="DD MMM YY"),
      "Data Fine": st.column_config.DateColumn("Fine", format="DD MMM YY"),
-     "Link": std.column_config.LinkColumn("Link")
+     "Link": st.column_config.LinkColumn("Link")
     }
 
 # 3. The "Silent Start" Display Logic

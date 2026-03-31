@@ -135,14 +135,13 @@ if not df.empty:
             [data-testid="stDataFrameResizable"] {
                 min-height: 75vh !important;
             }
-        </style>
         /* Target links inside the dataframe */
             [data-testid="stTable"] a:visited, 
             [data-testid="stDataFrame"] a:visited {
                 color: #ff4b4b !important; /* Changes to Streamlit Red after click */
                 text-decoration: none;
             }
-            </style>
+        </style>
         """,
         unsafe_allow_html=True
     )

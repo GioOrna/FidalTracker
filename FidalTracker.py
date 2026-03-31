@@ -113,17 +113,11 @@ if not df.empty:
     if liv_sel and not df_final.empty: df_final = df_final[df_final['Livello'].isin(liv_sel)]
     if tipo_sel and not df_final.empty: df_final = df_final[df_final['Tipo'].isin(tipo_sel)]
 
-    df_final["Nome_con_link"] = df.apply(lambda x: f"[{x['Nome']}]({x['Link']})", axis=1)
 # 2. Setup columns and configuration
-    cols_to_display = ['Data Inizio', 'Data Fine', 'Nome_con_link', 'Località', 'Livello', 'Categorie', 'Regione', 'Tipo']
+    cols_to_display = ['Data Inizio', 'Data Fine', 'Nome', 'Località', 'Livello', 'Categorie', 'Regione', 'Tipo', 'Link']
     config = {
      "Data Inizio": st.column_config.DateColumn("Inizio", format="DD MMM YY"),
      "Data Fine": st.column_config.DateColumn("Fine", format="DD MMM YY"),
-     "Nome_con_link": st.column_config.TextColumn(
-            "Link Gara",
-            help="Click to open the race details",
-            width="medium"
-        )
     }
 
 # 3. The "Silent Start" Display Logic
@@ -134,12 +128,6 @@ if not df.empty:
         <style>
             [data-testid="stDataFrameResizable"] {
                 min-height: 75vh !important;
-            }
-        /* Target links inside the dataframe */
-            [data-testid="stTable"] a:visited, 
-            [data-testid="stDataFrame"] a:visited {
-                color: #ff4b4b !important; /* Changes to Streamlit Red after click */
-                text-decoration: none;
             }
         </style>
         """,

@@ -167,6 +167,7 @@ def run_full_scrape():
 
               except Exception as e:
                   print(f"An error occurred: {e}")
+                  raise RuntimeError("Failed to scrape FIDAL site.")
                   return
 
     #if we got some results we merge the data that have the same link (so they are the same event) and we merge the "Categorie" elements, than we save the result

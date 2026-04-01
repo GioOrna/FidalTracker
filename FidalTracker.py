@@ -35,6 +35,7 @@ def load_data():
         # We load the pre-scraped data from Drive
         df = pd.read_csv(DATA_PATH)
         df['Data Inizio'] = pd.to_datetime(df['Data Inizio'], format='%d/%m/%Y', errors='coerce')
+        df['Data Fine'] = pd.to_datetime(df['Data Fine'], format='%d/%m/%Y', errors='coerce')
         df['Categorie'] = df['Categorie'].apply(safe_eval)
         df = df.sort_values(by='Data Inizio', na_position='last')
         return df
@@ -79,7 +80,7 @@ components.html(
 if not df.empty:
     with st.sidebar:
         st.header("🔍 Filtri")
-        anno_sel = st.multiselect("Anno", options = sorted(df["Data Inizio"].dt.year.unique().tolist(), reverse=True), default=[date.today().year] if date.today().year in df["Data Inizio"].dt.year.unique().tolist() else [df["Data Inizio"].dt.year.unique().tolist()[-1]])
+        anno_sel = st.multiselect("Anno", options = sorted(df["Data Inizio"].dropna().dt.year.unique().tolist(), reverse=True), default=[date.today().year] if date.today().year in df["Data Inizio"].dt.year.unique().tolist() else [df["Data Inizio"].dt.year.unique().tolist()[-1]])
         mesi_nomi = {"1":"Gen", "2":"Feb", "3":"Mar", "4":"Apr", "5":"Mag", "6":"Giu", "7":"Lug", "8":"Ago", "9":"Set", "10":"Ott", "11":"Nov", "12":"Dic"}
         mesi_sel = st.multiselect("Seleziona Mesi", options=list(mesi_nomi.keys()), format_func=lambda x: mesi_nomi[x], default=[str(date.today().month)])
         reg_sel = st.multiselect("Seleziona Regioni", options=sorted(df["Regione"].unique().tolist()))

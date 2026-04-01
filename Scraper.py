@@ -75,15 +75,16 @@ def data_splitter(data_str, anno):
     except:
         return pd.NaT, pd.NaT
 
-def link_reconstructor(partial, liv):
-  split = partial.rsplit('/', 1)
+# We need to add COD or REG based on the type of the race (the Fidal site doesn't give a valid link when searching without specifying which level) and also adding the true name of the race instead of what the fidal site puts because it is irrelevant to the functioning of the link and we can use it to display the true name of the race while also using it as an hyperlink
+def link_reconstructor(partial, liv, nome):
+  split = partial.rsplit('/', 2)
   if liv == "P" or liv == "R":
-    return f"{split[0]}/REG{split[1]}"
+    return f"{split[0]}/{nome}/REG{split[2]}"
   elif liv == "I" or liv == "N" or liv == "G" or liv == "S" or liv == "B":
-    return f"{split[0]}/COD{split[1]}"
+    return f"{split[0]}/{nome}/COD{split[2]}"
   else:
     print("Problema nel formattamento del link")
-  return ""
+  return "calendario/Link Errato/"
 
 def safe_eval(x):
     try:
@@ -157,12 +158,11 @@ def run_full_scrape():
                               'Data Inizio': data_splitter(cols[1].text.strip(), a)[0],
                               'Data Fine': data_splitter(cols[1].text.strip(), a)[1],
                               'Livello': cols[2].text.strip().split('-')[-1].strip(),
-                              'Nome': nome_tag.text.strip() if nome_tag else cols[3].text.strip(),
                               'Tipo': cols[4].text.strip(),
                               'Categorie': [c],
                               'Regione' : get_region(cols[5].text.strip().strip("()")[-2:]),
                               'Località': cols[5].text.strip(),
-                              'Link': link_reconstructor(nome_tag['href'], cols[2].text.strip().split('-')[-1].strip()) if nome_tag and 'href' in nome_tag.attrs else ""
+                              'Link': link_reconstructor(nome_tag['href'], cols[2].text.strip().split('-')[-1].strip(), nome_tag.text.strip() if nome_tag else cols[3].text.strip()) if nome_tag and 'href' in nome_tag.attrs else "calendario/Link Errato/"
                           })
 
               except Exception as e:
@@ -178,7 +178,6 @@ def run_full_scrape():
             'Data Fine': 'first',
             'Regione': 'first',
             'Livello': 'first',
-            'Nome': 'first',
             'Località': 'first',
             'Tipo': lambda x: " / ".join(x.unique()), # Unisce i testi
             'Categorie': merge_cat # Unisce le liste

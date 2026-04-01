@@ -55,11 +55,19 @@ st.markdown(
                 min-height: 75vh !important;
             }
 
-/* Disable pointer events on the input specifically for mobile */
-        @media (max-width: 768px) {
-            .stMultiSelect input {
-                pointer-events: none;
-            }
+/* This targets the input inside the multiselect. 
+           'pointer-events: none' prevents the tap from reaching the text-input 
+           (which triggers the keyboard), but the parent container still 
+           catches the click to open the dropdown.
+        */
+        .stMultiSelect div[role="combobox"] input {
+            pointer-events: none !important;
+            caret-color: transparent !important;
+        }
+        
+        /* Ensure the dropdown still feels interactive */
+        .stMultiSelect div[role="combobox"] {
+            cursor: pointer !important;
         }
         </style>
         """,
@@ -136,41 +144,22 @@ if not df.empty:
 components.html(
           """
           <script>
-function fixMultiselect() {
-        // Try to find the app contents within the current window first
-        // If that fails, try the parent (but wrap in try-catch to avoid crashing)
-        let doc;
-        try {
-            doc = window.parent.document;
-        } catch (e) {
-            doc = document;
-        }
-
-        const inputs = doc.querySelectorAll('.stMultiSelect input');
+const fixInput = () => {
+        // Look inside the current document (the iframe) instead of the parent
+        const inputs = document.querySelectorAll('input');
         inputs.forEach(input => {
-            if (input.getAttribute('inputmode') !== 'none') {
-                input.setAttribute('inputmode', 'none');
-                input.setAttribute('autocomplete', 'off');
-                // Force blur if keyboard tries to pop up
-                input.addEventListener('focus', () => {
-                   if(window.innerWidth < 768) input.blur();
-                });
-            }
+            input.setAttribute('readonly', 'true'); // Prevents keyboard
+            input.setAttribute('inputmode', 'none');
         });
-    }
+    };
 
-    // Increased frequency for the observer to catch the specific Cloud rendering cycle
-    const observer = new MutationObserver((mutations) => {
-        fixMultiselect();
-    });
-
-    observer.observe(window.parent.document.body, { 
-        childList: true, 
-        subtree: true 
-    });
+    // Run immediately and again after a short delay for Streamlit's render cycle
+    fixInput();
+    setTimeout(fixInput, 1000);
     
-    // Initial execution
-    setTimeout(fixMultiselect, 500);
+    // Observer that stays inside the sandbox
+    const observer = new MutationObserver(fixInput);
+    observer.observe(document.body, { childList: true, subtree: true });
           </script>
           """,
           height=0,

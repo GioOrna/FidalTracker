@@ -55,28 +55,6 @@ st.markdown(
                 min-height: 75vh !important;
             }
 
-    /* 1. Hide the blinking cursor and prevent input interaction */
-            .stMultiSelect input {
-                caret-color: transparent !important;
-                pointer-events: none !important;
-            }
-    
-            /* 2. Target the search input container to prevent it from gaining focus */
-            /* This is the secret sauce for mobile browsers */
-            .stMultiSelect div[data-baseweb="select"] input {
-                inputmode: none !important;
-            }
-    
-            /* 3. Ensure the user can still click the 'X' to remove items */
-            .stMultiSelect span[role="button"] {
-                pointer-events: auto !important;
-            }
-    
-            /* 4. Fix for the 'close' behavior: 
-               Make the whole box click-through to the dropdown toggle */
-            .stMultiSelect [data-baseweb="popover"] {
-                pointer-events: auto !important;
-            }
         </style>
         """,
         unsafe_allow_html=True
@@ -151,24 +129,7 @@ if not df.empty:
 components.html(
           """
           <script>
-          function fixMultiselect() {
-              const inputs = window.parent.document.querySelectorAll('.stMultiSelect input');
-              inputs.forEach(input => {
-                  if (input.getAttribute('inputmode') !== 'none') {
-                      // This is the magic line for mobile keyboards
-                      input.setAttribute('inputmode', 'none');
-                      
-                      // Ensure manual typing doesn't accidentally trigger anything
-                      input.setAttribute('autocomplete', 'off');
-                  }
-              });
-          }
-
-          // Watch for new elements (like when filters are added/removed)
-          const observer = new MutationObserver(fixMultiselect);
-          observer.observe(window.parent.document.body, { childList: true, subtree: true });
           
-          fixMultiselect();
           </script>
           """,
           height=0,

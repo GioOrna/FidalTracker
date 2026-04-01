@@ -52,25 +52,34 @@ st.session_state['fidal_df'] = df
 components.html(
     """
     <script>
+    let timeout = null;
+
     function disableKeyboard() {
         // Find all input fields inside Streamlit multiselect components
         const inputs = window.parent.document.querySelectorAll('.stMultiSelect input');
         inputs.forEach(input => {
-            // Tells mobile browsers NOT to show a virtual keyboard
-            input.setAttribute('inputmode', 'none'); 
-            // Prevents the cursor from triggering the keyboard while allowing clicks
-            input.setAttribute('readonly', 'true');
-            
-            // Optional: allow the dropdown to still open on click
-            input.parentElement.onclick = () => {
-                input.blur(); // Immediately remove focus to hide keyboard if it peaked
-            };
+            if (input.getAttribute('inputmode') !== 'none') {
+                input.setAttribute('inputmode', 'none'); 
+                input.setAttribute('readonly', 'true');
+                
+                input.parentElement.onclick = (e) => {
+                    input.blur();
+                };
+            }
         });
     }
 
-    // Run once, then keep watching for new elements (like when users interact)
-    const observer = new MutationObserver(disableKeyboard);
-    observer.observe(window.parent.document.body, { childList: true, subtree: true });
+    // Use a MutationObserver but with a guard to prevent rapid firing
+    const observer = new MutationObserver(() => {
+        clearTimeout(timeout);
+        timeout = setTimeout(disableKeyboard, 100); // Wait 100ms after changes stop
+    });
+
+    observer.observe(window.parent.document.body, { 
+        childList: true, 
+        subtree: true 
+    });
+    
     disableKeyboard();
     </script>
     """,

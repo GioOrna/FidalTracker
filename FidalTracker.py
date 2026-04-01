@@ -48,42 +48,45 @@ st.markdown("[Hai trovato un bug o hai un suggerimento?](https://docs.google.com
 df = load_data()
 st.session_state['fidal_df'] = df
 
-# Inject JS to strip 'inputmode' and set 'readonly' on all multiselects to avoid opening the keyboard on mobile
-components.html(
-    """
-    <script>
-    let timeout = null;
-
-    function disableKeyboard() {
-        // Find all input fields inside Streamlit multiselect components
-        const inputs = window.parent.document.querySelectorAll('.stMultiSelect input');
-        inputs.forEach(input => {
-            if (input.getAttribute('inputmode') !== 'none') {
-                input.setAttribute('inputmode', 'none'); 
-                input.setAttribute('readonly', 'true');
-                
-                input.parentElement.onclick = (e) => {
-                    input.blur();
-                };
+st.markdown(
+        """
+        <style>
+            [data-testid="stDataFrameResizable"] {
+                min-height: 75vh !important;
             }
-        });
-    }
 
-    // Use a MutationObserver but with a guard to prevent rapid firing
-    const observer = new MutationObserver(() => {
-        clearTimeout(timeout);
-        timeout = setTimeout(disableKeyboard, 100); // Wait 100ms after changes stop
-    });
+            .stMultiSelect input {
+                caret-color: transparent !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+)
+# 2. Lightweight JS to set the inputmode attribute correctly
+components.html(
+          """
+          <script>
+          function fixMultiselect() {
+              const inputs = window.parent.document.querySelectorAll('.stMultiSelect input');
+              inputs.forEach(input => {
+                  if (input.getAttribute('inputmode') !== 'none') {
+                      // This is the magic line for mobile keyboards
+                      input.setAttribute('inputmode', 'none');
+                      
+                      // Ensure manual typing doesn't accidentally trigger anything
+                      input.setAttribute('autocomplete', 'off');
+                  }
+              });
+          }
 
-    observer.observe(window.parent.document.body, { 
-        childList: true, 
-        subtree: true 
-    });
-    
-    disableKeyboard();
-    </script>
-    """,
-    height=0,
+          // Watch for new elements (like when filters are added/removed)
+          const observer = new MutationObserver(fixMultiselect);
+          observer.observe(window.parent.document.body, { childList: true, subtree: true });
+          
+          fixMultiselect();
+          </script>
+          """,
+          height=0,
 )
 
 if not df.empty:
@@ -134,17 +137,6 @@ if not df.empty:
 # 3. The "Silent Start" Display Logic
 # We check if df_final has the columns AND if it's not empty
     if not df_final.empty and all(c in df_final.columns for c in cols_to_display):
-     st.markdown(
-        """
-        <style>
-            [data-testid="stDataFrameResizable"] {
-                min-height: 75vh !important;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-     #dynamic_height = min(len(df_final) * 35 + 40, 800)
      st.dataframe(
         df_final[cols_to_display],
         column_config=config,

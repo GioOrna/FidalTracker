@@ -75,6 +75,7 @@ st.markdown(
             .stMultiSelect svg {
                 pointer-events: auto !important;
             }
+        </style>
         """,
         unsafe_allow_html=True
 )

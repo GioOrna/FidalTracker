@@ -43,7 +43,6 @@ def load_data():
 
 st.title("FidalTracker")
 st.caption(f"Dati aggiornati al: {get_data_time_last_update()}")
-st.caption("prova")
 st.markdown("[Hai trovato un bug o hai un suggerimento?](https://docs.google.com/forms/d/e/1FAIpQLScxYm4VHJun_DYzTH_XszFf92WKAs35j4wMJT_nF-tMMmqPYA/viewform?usp=dialog)")
 
 df = load_data()
@@ -67,28 +66,26 @@ st.markdown(
 components.html(
           """
           <script>
-            function fixMultiselect() {
-                // Try to find the document regardless of iframe depth
-                const doc = window.parent.document || window.document;
+                const disableMobileKeyboard = () => {
+                const doc = window.parent.document;
                 const inputs = doc.querySelectorAll('.stMultiSelect input');
                 
                 inputs.forEach(input => {
                     if (input.getAttribute('inputmode') !== 'none') {
                         input.setAttribute('inputmode', 'none');
                         input.setAttribute('autocomplete', 'off');
-                        // Add this: explicitly prevent focus from triggering keyboard
-                        input.addEventListener('focus', (e) => {
-                            input.setAttribute('readonly', 'true');
-                            setTimeout(() => input.removeAttribute('readonly'), 50);
+                        
+                        // Instead of a loop-triggering Observer, we use a simple focus guard
+                        input.addEventListener('focus', function() {
+                            this.readOnly = true;
+                            setTimeout(() => { this.readOnly = false; }, 50);
                         });
                     }
                 });
-            }
-            
-            // Increase the observer frequency for Cloud latency
-            const observer = new MutationObserver(fixMultiselect);
-            observer.observe(window.parent.document.body, { childList: true, subtree: true });
-            fixMultiselect();
+            };
+        
+            // Run every 1 second instead of every DOM change to prevent the refresh loop
+            setInterval(disableMobileKeyboard, 1000);
           </script>
           """,
           height=0,

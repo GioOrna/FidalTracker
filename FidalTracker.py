@@ -147,3 +147,29 @@ if not df.empty:
         column_config=config,
         use_container_width=True
      )
+
+components.html(
+          """
+          <script>
+          function fixMultiselect() {
+              const inputs = window.parent.document.querySelectorAll('.stMultiSelect input');
+              inputs.forEach(input => {
+                  if (input.getAttribute('inputmode') !== 'none') {
+                      // This is the magic line for mobile keyboards
+                      input.setAttribute('inputmode', 'none');
+                      
+                      // Ensure manual typing doesn't accidentally trigger anything
+                      input.setAttribute('autocomplete', 'off');
+                  }
+              });
+          }
+
+          // Watch for new elements (like when filters are added/removed)
+          const observer = new MutationObserver(fixMultiselect);
+          observer.observe(window.parent.document.body, { childList: true, subtree: true });
+          
+          fixMultiselect();
+          </script>
+          """,
+          height=0,
+)

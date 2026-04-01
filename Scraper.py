@@ -94,22 +94,25 @@ def safe_eval(x):
 
 def load_data():
     if os.path.exists(DATA_PATH):
-        # We load the pre-scraped data from Drive
+        # We load the pre-scraped data
         df = pd.read_csv(DATA_PATH)
         df['Data Inizio'] = pd.to_datetime(df['Data Inizio'], dayfirst=True, errors='coerce')
+        df['Data Fine'] = pd.to_datetime(df['Data Fine'], dayfirst=True, errors='coerce')
         df['Categorie'] = df['Categorie'].apply(safe_eval)
         # Eliminiamo eventuali righe dove la data è corrotta (NaT = Not a Time)
         df = df.dropna(subset=['Data Inizio'])
-        # Ordiniamo le gare per data (dalla più vicina)
-        df = df.sort_values(by='Data Inizio')
         return df
     return pd.DataFrame()
   
 def update_csv(df_merged, anno_to_merge):
   df_old = load_data()
   if not df_old.empty:
+    # Ensure the new data columns are also definitely datetimes before concat
+    df_merged['Data Inizio'] = pd.to_datetime(df_merged['Data Inizio'])
+    df_merged['Data Fine'] = pd.to_datetime(df_merged['Data Fine'])
     df_filtered = df_old[(df_old["Data Inizio"].dt.year < anno_to_merge)]
     df_final = pd.concat([df_filtered, df_merged], ignore_index=True)
+    df_final = df_final.sort_values(by='Data Inizio')
     df_final.to_csv(DATA_PATH, date_format='%d/%m/%Y', index=False)
 
 def run_full_scrape():
@@ -183,8 +186,9 @@ def run_full_scrape():
             'Categorie': merge_cat # Unisce le liste
         }).reset_index()
         df_merged = df_merged.sort_values(by='Data Inizio')
-        # Save to Google Drive
+        # Save the file or merge it
         if scraper_mode_all:
+          df_merged = df_merged.sort_values(by='Data Inizio')
           df_merged.to_csv(DATA_PATH, date_format='%d/%m/%Y', index=False)
         else:
           update_csv(df_merged, anno_to_search)

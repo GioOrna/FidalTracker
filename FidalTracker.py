@@ -114,11 +114,11 @@ if not df.empty:
     if tipo_sel and not df_final.empty: df_final = df_final[df_final['Tipo'].isin(tipo_sel)]
 
 # 2. Setup columns and configuration
-    cols_to_display = ['Data Inizio', 'Data Fine', 'Nome', 'Località', 'Livello', 'Categorie', 'Regione', 'Tipo', 'Link']
+    cols_to_display = ['Data Inizio', 'Data Fine', 'Link', 'Località', 'Livello', 'Categorie', 'Regione', 'Tipo']
     config = {
      "Data Inizio": st.column_config.DateColumn("Inizio", format="DD MMM YY"),
      "Data Fine": st.column_config.DateColumn("Fine", format="DD MMM YY"),
-     "Link": st.column_config.LinkColumn("Link")
+     "Link": st.column_config.LinkColumn("Nome gara e link", display_text=r"calendario/(.+)/[^/]+$")
     }
 
 # 3. The "Silent Start" Display Logic

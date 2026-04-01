@@ -55,21 +55,26 @@ st.markdown(
                 min-height: 75vh !important;
             }
 
-/* This targets the input inside the multiselect. 
-           'pointer-events: none' prevents the tap from reaching the text-input 
-           (which triggers the keyboard), but the parent container still 
-           catches the click to open the dropdown.
-        */
-        .stMultiSelect div[role="combobox"] input {
-            pointer-events: none !important;
-            caret-color: transparent !important;
-        }
-        
-        /* Ensure the dropdown still feels interactive */
-        .stMultiSelect div[role="combobox"] {
-            cursor: pointer !important;
-        }
-        </style>
+    /* 1. The Main Hack: Disable the input's ability to focus/type */
+            .stMultiSelect input {
+                user-select: none !important;
+                -webkit-user-select: none !important;
+                caret-color: transparent !important;
+                /* inputmode none is hard to force via CSS, so we 'shield' it */
+                pointer-events: none !important;
+            }
+    
+            /* 2. Re-enable clicking on the container so the dropdown still opens */
+            .stMultiSelect [data-baseweb="select"] {
+                cursor: pointer !important;
+            }
+    
+            /* 3. CRITICAL: Ensure the 'X' buttons and the 'Clear All' button 
+               remain clickable so you can still remove categories. */
+            .stMultiSelect [role="button"], 
+            .stMultiSelect svg {
+                pointer-events: auto !important;
+            }
         """,
         unsafe_allow_html=True
 )
@@ -139,28 +144,3 @@ if not df.empty:
         column_config=config,
         use_container_width=True
      )
-
-# 2. Lightweight JS to set the inputmode attribute correctly
-components.html(
-          """
-          <script>
-const fixInput = () => {
-        // Look inside the current document (the iframe) instead of the parent
-        const inputs = document.querySelectorAll('input');
-        inputs.forEach(input => {
-            input.setAttribute('readonly', 'true'); // Prevents keyboard
-            input.setAttribute('inputmode', 'none');
-        });
-    };
-
-    // Run immediately and again after a short delay for Streamlit's render cycle
-    fixInput();
-    setTimeout(fixInput, 1000);
-    
-    // Observer that stays inside the sandbox
-    const observer = new MutationObserver(fixInput);
-    observer.observe(document.body, { childList: true, subtree: true });
-          </script>
-          """,
-          height=0,
-)

@@ -66,26 +66,41 @@ st.markdown(
 components.html(
           """
           <script>
-                const disableMobileKeyboard = () => {
-                const doc = window.parent.document;
+        function fixMultiselect() {
+                // Try to find the app contents within the current window first
+                // If that fails, try the parent (but wrap in try-catch to avoid crashing)
+                let doc;
+                try {
+                    doc = window.parent.document;
+                } catch (e) {
+                    doc = document;
+                }
+        
                 const inputs = doc.querySelectorAll('.stMultiSelect input');
-                
                 inputs.forEach(input => {
                     if (input.getAttribute('inputmode') !== 'none') {
                         input.setAttribute('inputmode', 'none');
                         input.setAttribute('autocomplete', 'off');
-                        
-                        // Instead of a loop-triggering Observer, we use a simple focus guard
-                        input.addEventListener('focus', function() {
-                            this.readOnly = true;
-                            setTimeout(() => { this.readOnly = false; }, 50);
+                        // Force blur if keyboard tries to pop up
+                        input.addEventListener('focus', () => {
+                           if(window.innerWidth < 768) input.blur();
                         });
                     }
                 });
-            };
+            }
         
-            // Run every 1 second instead of every DOM change to prevent the refresh loop
-            setInterval(disableMobileKeyboard, 1000);
+            // Increased frequency for the observer to catch the specific Cloud rendering cycle
+            const observer = new MutationObserver((mutations) => {
+                fixMultiselect();
+            });
+        
+            observer.observe(window.parent.document.body, { 
+                childList: true, 
+                subtree: true 
+            });
+            
+            // Initial execution
+            setTimeout(fixMultiselect, 500);
           </script>
           """,
           height=0,

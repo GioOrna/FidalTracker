@@ -55,24 +55,26 @@ st.markdown(
                 min-height: 75vh !important;
             }
 
-    /* 1. The Main Hack: Disable the input's ability to focus/type */
+    /* 1. Hide the blinking cursor and prevent input interaction */
             .stMultiSelect input {
-                user-select: none !important;
-                -webkit-user-select: none !important;
                 caret-color: transparent !important;
-                /* inputmode none is hard to force via CSS, so we 'shield' it */
                 pointer-events: none !important;
             }
     
-            /* 2. Re-enable clicking on the container so the dropdown still opens */
-            .stMultiSelect [data-baseweb="select"] {
-                cursor: pointer !important;
+            /* 2. Target the search input container to prevent it from gaining focus */
+            /* This is the secret sauce for mobile browsers */
+            .stMultiSelect div[data-baseweb="select"] input {
+                inputmode: none !important;
             }
     
-            /* 3. CRITICAL: Ensure the 'X' buttons and the 'Clear All' button 
-               remain clickable so you can still remove categories. */
-            .stMultiSelect [role="button"], 
-            .stMultiSelect svg {
+            /* 3. Ensure the user can still click the 'X' to remove items */
+            .stMultiSelect span[role="button"] {
+                pointer-events: auto !important;
+            }
+    
+            /* 4. Fix for the 'close' behavior: 
+               Make the whole box click-through to the dropdown toggle */
+            .stMultiSelect [data-baseweb="popover"] {
                 pointer-events: auto !important;
             }
         </style>

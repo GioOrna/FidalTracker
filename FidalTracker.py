@@ -55,9 +55,12 @@ st.markdown(
                 min-height: 75vh !important;
             }
 
+/* Disable pointer events on the input specifically for mobile */
+        @media (max-width: 768px) {
             .stMultiSelect input {
-                caret-color: transparent !important;
+                pointer-events: none;
             }
+        }
         </style>
         """,
         unsafe_allow_html=True

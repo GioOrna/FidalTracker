@@ -66,24 +66,28 @@ st.markdown(
 components.html(
           """
           <script>
-          function fixMultiselect() {
-              const inputs = window.parent.document.querySelectorAll('.stMultiSelect input');
-              inputs.forEach(input => {
-                  if (input.getAttribute('inputmode') !== 'none') {
-                      // This is the magic line for mobile keyboards
-                      input.setAttribute('inputmode', 'none');
-                      
-                      // Ensure manual typing doesn't accidentally trigger anything
-                      input.setAttribute('autocomplete', 'off');
-                  }
-              });
-          }
-
-          // Watch for new elements (like when filters are added/removed)
-          const observer = new MutationObserver(fixMultiselect);
-          observer.observe(window.parent.document.body, { childList: true, subtree: true });
-          
-          fixMultiselect();
+            function fixMultiselect() {
+                // Try to find the document regardless of iframe depth
+                const doc = window.parent.document || window.document;
+                const inputs = doc.querySelectorAll('.stMultiSelect input');
+                
+                inputs.forEach(input => {
+                    if (input.getAttribute('inputmode') !== 'none') {
+                        input.setAttribute('inputmode', 'none');
+                        input.setAttribute('autocomplete', 'off');
+                        // Add this: explicitly prevent focus from triggering keyboard
+                        input.addEventListener('focus', (e) => {
+                            input.setAttribute('readonly', 'true');
+                            setTimeout(() => input.removeAttribute('readonly'), 50);
+                        });
+                    }
+                });
+            }
+            
+            // Increase the observer frequency for Cloud latency
+            const observer = new MutationObserver(fixMultiselect);
+            observer.observe(window.parent.document.body, { childList: true, subtree: true });
+            fixMultiselect();
           </script>
           """,
           height=0,

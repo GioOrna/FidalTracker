@@ -133,24 +133,41 @@ if not df.empty:
 components.html(
           """
           <script>
-          function fixMultiselect() {
-              const inputs = window.parent.document.querySelectorAll('.stMultiSelect input');
-              inputs.forEach(input => {
-                  if (input.getAttribute('inputmode') !== 'none') {
-                      // This is the magic line for mobile keyboards
-                      input.setAttribute('inputmode', 'none');
-                      
-                      // Ensure manual typing doesn't accidentally trigger anything
-                      input.setAttribute('autocomplete', 'off');
-                  }
-              });
-          }
+function fixMultiselect() {
+        // Try to find the app contents within the current window first
+        // If that fails, try the parent (but wrap in try-catch to avoid crashing)
+        let doc;
+        try {
+            doc = window.parent.document;
+        } catch (e) {
+            doc = document;
+        }
 
-          // Watch for new elements (like when filters are added/removed)
-          const observer = new MutationObserver(fixMultiselect);
-          observer.observe(window.parent.document.body, { childList: true, subtree: true });
-          
-          fixMultiselect();
+        const inputs = doc.querySelectorAll('.stMultiSelect input');
+        inputs.forEach(input => {
+            if (input.getAttribute('inputmode') !== 'none') {
+                input.setAttribute('inputmode', 'none');
+                input.setAttribute('autocomplete', 'off');
+                // Force blur if keyboard tries to pop up
+                input.addEventListener('focus', () => {
+                   if(window.innerWidth < 768) input.blur();
+                });
+            }
+        });
+    }
+
+    // Increased frequency for the observer to catch the specific Cloud rendering cycle
+    const observer = new MutationObserver((mutations) => {
+        fixMultiselect();
+    });
+
+    observer.observe(window.parent.document.body, { 
+        childList: true, 
+        subtree: true 
+    });
+    
+    // Initial execution
+    setTimeout(fixMultiselect, 500);
           </script>
           """,
           height=0,

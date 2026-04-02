@@ -105,17 +105,6 @@ def load_data():
         return df
     return pd.DataFrame()
   
-def save_to_HF():
-    api = HfApi()
-    api.upload_file(
-        repo_id=f"{os.environ.get('HF_USERNAME')}/fidal-meets-data",
-        repo_type="dataset",
-        path_in_repo="fidal_meets_data.csv",
-        path_or_fileobj="fidal_meets_data.csv",
-        token=os.environ.get("HF_TOKEN"),
-        commit_message="Aggiornamento dati"
-    )
-
 def update_csv(df_merged, anno_to_merge):
   df_old = load_data()
   if not df_old.empty:
@@ -126,7 +115,6 @@ def update_csv(df_merged, anno_to_merge):
     df_final = pd.concat([df_filtered, df_merged], ignore_index=True)
     df_final = df_final.sort_values(by='Data Inizio')
     df_final.to_csv(DATA_PATH, date_format='%d/%m/%Y', index=False)
-    save_to_HF()
 
 def run_full_scrape():
     if scraper_mode_all:
@@ -203,7 +191,6 @@ def run_full_scrape():
         if scraper_mode_all:
           df_merged = df_merged.sort_values(by='Data Inizio')
           df_merged.to_csv(DATA_PATH, date_format='%d/%m/%Y', index=False)
-          save_to_HF()
         else:
           update_csv(df_merged, anno_to_search)
         print(f"Scrape finished at {datetime.now()}. Saved to {DATA_PATH}")

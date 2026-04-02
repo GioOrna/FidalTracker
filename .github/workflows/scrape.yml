@@ -19,7 +19,6 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
-             pip install huggingface-hub
 
       - name: Run scraper with retry
         run: |
@@ -36,7 +35,6 @@ jobs:
             sleep 120
           done
     
-
       - name: Commit and push changes to local repo
         if: success()
         run: |

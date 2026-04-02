@@ -1,15 +1,16 @@
 import ast
-import os
+import requests
 import pytz
 from datetime import datetime, date
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse
 import pandas as pd
 import uvicorn
+import time
 
 app = FastAPI()
 
-DATA_PATH = "fidal_meets_data.csv"
+DATA_PATH = "https://raw.githubusercontent.com/GioOrna/FidalTracker/refs/heads/main/fidal_meets_data.csv?t={int(time.time())}"
 
 def safe_eval(x):
     try:
@@ -18,7 +19,9 @@ def safe_eval(x):
         return x
 
 def get_last_update():
-    if os.path.exists(DATA_PATH):
+    response = requests.head(DATA_PATH)
+    if response.status_code == 200: #if file exist
+        mtime = response.headers.get('Last-Modified')
         mtime = os.path.getmtime(DATA_PATH)
         utctime = datetime.fromtimestamp(mtime, tz=pytz.utc)
         italy_tz = pytz.timezone("Europe/Rome")
@@ -27,7 +30,8 @@ def get_last_update():
     return "N/A"
 
 def load_data():
-    if not os.path.exists(DATA_PATH):
+    response = requests.head(DATA_PATH)
+    if not response.status_code == 200:
         return pd.DataFrame()
     df = pd.read_csv(DATA_PATH)
     df["Data Inizio"] = pd.to_datetime(df["Data Inizio"], format="%d/%m/%Y", errors="coerce")
@@ -43,12 +47,13 @@ def get_df():
     global _df_cache, _cache_mtime
     updated = False
     
-    if not os.path.exists(DATA_PATH):
+    response = requests.head(DATA_PATH)
+    if not response.status_code == 200: #if file doesn't exist
         _df_cache = pd.DataFrame()
         _cache_mtime = None
         return _df_cache, updated
-    
-    current_mtime = os.path.getmtime(DATA_PATH)
+
+    current_mtime = response.headers.get('Last-Modified')
     
     if _df_cache is None or _cache_mtime is None or current_mtime != _cache_mtime:
         print(f"Reloading data... (file modified)")

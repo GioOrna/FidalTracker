@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 import pandas as pd
 import uvicorn
 import time
+from io import StringIO
 
 app = FastAPI()
 
@@ -24,7 +25,6 @@ def get_last_update():
     response = requests.head(get_url())
     if response.status_code == 200: #if file exist
         mtime = response.headers.get('Last-Modified')
-        mtime = os.path.getmtime(get_url())
         utctime = datetime.fromtimestamp(mtime, tz=pytz.utc)
         italy_tz = pytz.timezone("Europe/Rome")
         local_time = utctime.astimezone(italy_tz)
@@ -32,10 +32,10 @@ def get_last_update():
     return "N/A"
 
 def load_data():
-    response = requests.head(get_url())
+    response = requests.get(get_url(), timeout=20)
     if not response.status_code == 200:
         return pd.DataFrame()
-    df = pd.read_csv(get_url())
+    df = pd.read_csv(StringIO(response.text))
     df["Data Inizio"] = pd.to_datetime(df["Data Inizio"], format="%d/%m/%Y", errors="coerce")
     df["Data Fine"] = pd.to_datetime(df["Data Fine"], format="%d/%m/%Y", errors="coerce")
     df["Categorie"] = df["Categorie"].apply(safe_eval)

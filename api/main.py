@@ -23,12 +23,16 @@ def safe_eval(x):
 
 def get_last_update():
     response = requests.head(get_url())
-    if response.status_code == 200: #if file exist
-        mtime = response.headers.get('Last-Modified')
-        utctime = datetime.fromtimestamp(mtime, tz=pytz.utc)
-        italy_tz = pytz.timezone("Europe/Rome")
-        local_time = utctime.astimezone(italy_tz)
-        return local_time.strftime("%d/%m/%Y %H:%M")
+    if response.status_code == 200:
+            mtime_str = response.headers.get('Last-Modified')
+            if mtime_str:
+                # Parse the HTTP date string format
+                utctime = datetime.strptime(mtime_str, '%a, %d %b %Y %H:%M:%S %Z')
+                utctime = utctime.replace(tzinfo=pytz.utc)
+                
+                italy_tz = pytz.timezone("Europe/Rome")
+                local_time = utctime.astimezone(italy_tz)
+                return local_time.strftime("%d/%m/%Y %H:%M")
     return "N/A"
 
 def load_data():

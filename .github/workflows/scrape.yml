@@ -19,6 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+             pip install huggingface-hub
 
       - name: Run scraper with retry
         run: |
@@ -36,7 +37,7 @@ jobs:
           done
     
 
-      - name: Commit and push changes
+      - name: Commit and push changes to local repo
         if: success()
         run: |
           git config --global user.name "github-actions"
@@ -44,3 +45,23 @@ jobs:
           git add fidal_meets_data.csv
           git commit -m "Automated data update: $(date)" || echo "No changes to commit"
           git push
+
+      - name: Upload to Hugging Face Dataset
+        if: success()
+        run: |
+          from huggingface_hub import HfApi
+          import os
+          
+          api = HfApi()
+          
+          # Carica il CSV nel dataset repository
+          api.upload_file(
+              repo_id="${{ secrets.HF_USERNAME }}/fidal-meets-data",
+              repo_type="dataset",
+              path_in_repo="fidal_meets_data.csv",
+              path_or_fileobj="fidal_meets_data.csv",
+              token=os.environ.get("HF_TOKEN"),
+              commit_message="Aggiornamento automatico dati $(date +'%Y-%m-%d')"
+          )
+          print("✅ CSV caricato su Hugging Face Dataset!")
+        shell: python

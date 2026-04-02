@@ -10,7 +10,9 @@ import time
 
 app = FastAPI()
 
-DATA_PATH = "https://raw.githubusercontent.com/GioOrna/FidalTracker/refs/heads/main/fidal_meets_data.csv?t={int(time.time())}"
+def get_url():
+    # This code runs the moment you call get_url()
+    return f"https://raw.githubusercontent.com/GioOrna/FidalTracker/refs/heads/main/fidal_meets_data.csv?t={int(time.time())}"
 
 def safe_eval(x):
     try:
@@ -19,10 +21,10 @@ def safe_eval(x):
         return x
 
 def get_last_update():
-    response = requests.head(DATA_PATH)
+    response = requests.head(get_url())
     if response.status_code == 200: #if file exist
         mtime = response.headers.get('Last-Modified')
-        mtime = os.path.getmtime(DATA_PATH)
+        mtime = os.path.getmtime(get_url())
         utctime = datetime.fromtimestamp(mtime, tz=pytz.utc)
         italy_tz = pytz.timezone("Europe/Rome")
         local_time = utctime.astimezone(italy_tz)
@@ -30,10 +32,10 @@ def get_last_update():
     return "N/A"
 
 def load_data():
-    response = requests.head(DATA_PATH)
+    response = requests.head(get_url())
     if not response.status_code == 200:
         return pd.DataFrame()
-    df = pd.read_csv(DATA_PATH)
+    df = pd.read_csv(get_url())
     df["Data Inizio"] = pd.to_datetime(df["Data Inizio"], format="%d/%m/%Y", errors="coerce")
     df["Data Fine"] = pd.to_datetime(df["Data Fine"], format="%d/%m/%Y", errors="coerce")
     df["Categorie"] = df["Categorie"].apply(safe_eval)
@@ -47,7 +49,7 @@ def get_df():
     global _df_cache, _cache_mtime
     updated = False
     
-    response = requests.head(DATA_PATH)
+    response = requests.head(get_url())
     if not response.status_code == 200: #if file doesn't exist
         _df_cache = pd.DataFrame()
         _cache_mtime = None

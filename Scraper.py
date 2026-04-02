@@ -6,7 +6,6 @@ from datetime import datetime, date, timedelta
 import json
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from huggingface_hub import HfApi
 
 scraper_mode_all = False #if True we scrape all current and past information on the FIDAL site, if False we only scrape informations of the "current" year (in reality 2 days prior of today just to update information on eventual races on the 30-31 of December)
 DATA_PATH = 'fidal_meets_data.csv'

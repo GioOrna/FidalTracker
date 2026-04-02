@@ -8,6 +8,7 @@ import pandas as pd
 import uvicorn
 import time
 from io import StringIO
+from dateutil import parser
 
 app = FastAPI()
 
@@ -22,17 +23,21 @@ def safe_eval(x):
         return x
 
 def get_last_update():
-    response = requests.head(get_url())
-    if response.status_code == 200:
-            mtime_str = response.headers.get('Last-Modified')
-            if mtime_str:
-                # Parse the HTTP date string format
-                utctime = datetime.strptime(mtime_str, '%a, %d %b %Y %H:%M:%S %Z')
-                utctime = utctime.replace(tzinfo=pytz.utc)
-                
-                italy_tz = pytz.timezone("Europe/Rome")
-                local_time = utctime.astimezone(italy_tz)
-                return local_time.strftime("%d/%m/%Y %H:%M")
+    try:
+        # 1. Get the header
+        response = requests.head(get_url(), timeout=5)
+        mtime_str = response.headers.get('Last-Modified')
+        if mtime_str:
+            # 2. Let dateutil handle the weird HTTP format automatically
+            utctime = parser.parse(mtime_str)
+            # 3. Convert to Italy time
+            italy_tz = pytz.timezone("Europe/Rome")
+            local_time = utctime.astimezone(italy_tz)
+            return local_time.strftime("%d/%m/%Y %H:%M")
+    except Exception as e:
+        # This will show you exactly WHY it's failing in your Vercel logs
+        print(f"DEBUG: Last-Modified failed. Error: {e}")
+        
     return "N/A"
 
 def load_data():
@@ -53,7 +58,7 @@ def get_df():
     global _df_cache, _cache_mtime
     updated = False
     
-    response = requests.head(get_url())
+    response = requests.head(get_url(), timeout=5)
     if not response.status_code == 200: #if file doesn't exist
         _df_cache = pd.DataFrame()
         _cache_mtime = None

@@ -24,25 +24,20 @@ def safe_eval(x):
 
 def get_last_update():
     try:
-        # 1. Get the header
-        response = requests.head(get_url(), timeout=5)
+        api_url = "https://api.github.com/repos/GioOrna/FidalTracker/commits?path=fidal_meets_data.csv&per_page=1"
+        response = requests.get(api_url, timeout=10, headers={"Accept": "application/vnd.github+json"})
         if response.status_code == 200:
             data = response.json()
             if data:
-                # The date comes in ISO format: "2024-05-20T15:30:00Z"
                 commit_date_str = data[0]['commit']['committer']['date']
-                
-                # ISO format is much easier to parse
                 utctime = datetime.strptime(commit_date_str, '%Y-%m-%dT%H:%M:%SZ')
                 utctime = utctime.replace(tzinfo=pytz.utc)
-                
                 italy_tz = pytz.timezone("Europe/Rome")
                 local_time = utctime.astimezone(italy_tz)
                 return local_time.strftime("%d/%m/%Y %H:%M")
     except Exception as e:
-        # This will show you exactly WHY it's failing in your Vercel logs
-        print(f"DEBUG: Last-Modified failed. Error: {e}")
-        
+        print(f"DEBUG: get_last_update failed. Error: {e}")
+
     return "N/A"
 
 def load_data():

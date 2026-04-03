@@ -24,17 +24,20 @@ def safe_eval(x):
 
 def get_last_update():
     try:
-        response = requests.head(get_url(), timeout=5)
+        api_url = "https://api.github.com/repos/GioOrna/FidalTracker/commits?path=fidal_meets_data.csv&per_page=1"
+        response = requests.get(api_url, timeout=10, headers={"Accept": "application/vnd.github+json"})
         if response.status_code == 200:
-            last_modified = response.headers.get('Last-Modified')
-            if last_modified:
-                utctime = datetime.strptime(last_modified, '%a, %d %b %Y %H:%M:%S %Z')
+            data = response.json()
+            if data:
+                commit_date_str = data[0]['commit']['committer']['date']
+                utctime = datetime.strptime(commit_date_str, '%Y-%m-%dT%H:%M:%SZ')
                 utctime = utctime.replace(tzinfo=pytz.utc)
                 italy_tz = pytz.timezone("Europe/Rome")
                 local_time = utctime.astimezone(italy_tz)
                 return local_time.strftime("%d/%m/%Y %H:%M")
     except Exception as e:
         print(f"DEBUG: get_last_update failed. Error: {e}")
+
     return "N/A"
 
 def load_data():

@@ -22,20 +22,24 @@ def safe_eval(x):
     except:
         return x
 
-def get_last_update():
+def _fetch_github_meta():
+    """Returns (formatted_date_string, commit_sha) from the latest commit touching the CSV."""
     try:
-        response = requests.head(get_url(), timeout=5)
-        if response.status_code == 200:
-            last_modified = response.headers.get('Last-Modified')
-            if last_modified:
-                utctime = datetime.strptime(last_modified, '%a, %d %b %Y %H:%M:%S %Z')
+        url = "https://api.github.com/repos/GioOrna/FidalTracker/commits?path=fidal_meets_data.csv&per_page=1"
+        r = requests.get(url, timeout=10, headers={"Accept": "application/vnd.github+json"})
+        if r.status_code == 200:
+            commits = r.json()
+            if commits:
+                sha = commits[0]['sha']
+                commit_date_str = commits[0]['commit']['committer']['date']
+                utctime = datetime.strptime(commit_date_str, '%Y-%m-%dT%H:%M:%SZ')
                 utctime = utctime.replace(tzinfo=pytz.utc)
                 italy_tz = pytz.timezone("Europe/Rome")
                 local_time = utctime.astimezone(italy_tz)
-                return local_time.strftime("%d/%m/%Y %H:%M")
+                return local_time.strftime("%d/%m/%Y %H:%M"), sha
     except Exception as e:
-        print(f"DEBUG: get_last_update failed. Error: {e}")
-    return "N/A"
+        print(f"DEBUG: _fetch_github_meta failed. Error: {e}")
+    return "N/A", ""
 
 def load_data():
     response = requests.get(get_url(), timeout=20)
@@ -50,24 +54,27 @@ def load_data():
 
 _df_cache = None
 _cache_mtime = None
+_cache_lastupdate = "N/A"
 
 def get_df():
-    global _df_cache, _cache_mtime
-    
-    response = requests.head(get_url(), timeout=5)
-    if not response.status_code == 200: #if file doesn't exist
+    global _df_cache, _cache_mtime, _cache_lastupdate
+
+    last_update_str, sha = _fetch_github_meta()
+    if not sha:
         _df_cache = pd.DataFrame()
         _cache_mtime = None
         return _df_cache
 
-    current_mtime = response.headers.get('Last-Modified')
-    
-    if _df_cache is None or _cache_mtime is None or current_mtime != _cache_mtime:
-        print(f"Reloading data... (file modified)")
+    if _df_cache is None or _cache_mtime is None or sha != _cache_mtime:
+        print(f"Reloading data... (new commit: {sha[:7]})")
         _df_cache = load_data()
-        _cache_mtime = current_mtime
-    
+        _cache_mtime = sha
+        _cache_lastupdate = last_update_str
+
     return _df_cache
+
+def get_last_update():
+    return _cache_lastupdate
 
 @app.on_event("startup")
 def startup():

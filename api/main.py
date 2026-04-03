@@ -24,20 +24,17 @@ def safe_eval(x):
 
 def get_last_update():
     try:
-        api_url = "https://api.github.com/repos/GioOrna/FidalTracker/commits?path=fidal_meets_data.csv&per_page=1"
-        response = requests.get(api_url, timeout=10, headers={"Accept": "application/vnd.github+json"})
+        response = requests.head(get_url(), timeout=5)
         if response.status_code == 200:
-            data = response.json()
-            if data:
-                commit_date_str = data[0]['commit']['committer']['date']
-                utctime = datetime.strptime(commit_date_str, '%Y-%m-%dT%H:%M:%SZ')
+            last_modified = response.headers.get('Last-Modified')
+            if last_modified:
+                utctime = datetime.strptime(last_modified, '%a, %d %b %Y %H:%M:%S %Z')
                 utctime = utctime.replace(tzinfo=pytz.utc)
                 italy_tz = pytz.timezone("Europe/Rome")
                 local_time = utctime.astimezone(italy_tz)
                 return local_time.strftime("%d/%m/%Y %H:%M")
     except Exception as e:
         print(f"DEBUG: get_last_update failed. Error: {e}")
-
     return "N/A"
 
 def load_data():
@@ -61,7 +58,7 @@ def get_df():
     if not response.status_code == 200: #if file doesn't exist
         _df_cache = pd.DataFrame()
         _cache_mtime = None
-        return _df_cache, updated
+        return _df_cache
 
     current_mtime = response.headers.get('Last-Modified')
     
@@ -78,7 +75,7 @@ def startup():
 
 @app.get("/api/filters")
 def get_filters():
-    df = get_df()[0]
+    df = get_df()
     if df.empty:
         return {}
     anni = sorted(df["Data Inizio"].dropna().dt.year.unique().tolist(), reverse=True)
@@ -96,6 +93,7 @@ def get_filters():
         "currentYear": today.year,
         "currentMonth": today.month,
         "lastUpdate": _cache_mtime or "",
+        "lastModified": _cache_mtime or "",       # raw header for client comparison
     }
 
 @app.get("/api/data")
@@ -113,7 +111,7 @@ def get_data(
 ):
     df = get_df()
     if df.empty:
-        return JSONResponse({"total": 0, "page": 0, "results": [], "lastUpdate": ""})
+        return JSONResponse({"total": 0, "page": 0, "results": [], "lastModified": ""})
 
     if anni:
         anni_list = [int(a) for a in anni.split(",") if a]
@@ -151,7 +149,7 @@ def get_data(
     df["Data Fine"] = df["Data Fine"].dt.strftime("%d/%m/%Y").fillna("")
     df["Categorie"] = df["Categorie"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
     page_df = df.iloc[page * page_size : (page + 1) * page_size]
-    return JSONResponse({"total": total, "page": page, "results": page_df.fillna("").to_dict(orient="records"), "lastUpdate": _cache_mtime or ""})
+    return JSONResponse({"total": total, "page": page, "results": page_df.fillna("").to_dict(orient="records"), "lastModified": _cache_mtime or ""})
 
 HTML = r"""<!DOCTYPE html>
 <html lang="it">
@@ -651,7 +649,7 @@ function setSort(s) {
   fetchData(true);
 }
 
-let knownLastUpdate = "";   // what this client last saw
+let knownLastModified = "";   // what this client last saw
 async function fetchData(resetPage = true) {
   if (resetPage) {
     currentPage = 0;
@@ -675,8 +673,7 @@ async function fetchData(resetPage = true) {
   } else {
     renderCards(data.results, data.total, true);
   }
-  if (knownLastUpdate && data.lastUpdate && data.lastUpdate !== knownLastUpdate) {
-    knownLastUpdate = data.lastUpdate;
+  if (knownLastModified && data.lastModified && data.lastModified !== knownLastModified) {
     filtersData = await (await fetch("/api/filters")).json();
     rebuildAll();
     element = document.getElementById("last-update");
@@ -712,6 +709,7 @@ async function fetchData(resetPage = true) {
         }, 500); // Wait for fade out to complete
     }, 2000); // Show for 2 seconds
   }
+  if (data.lastModified) knownLastModified = data.lastModified;
 }
 
 async function loadMore() {

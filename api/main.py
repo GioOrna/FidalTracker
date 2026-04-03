@@ -24,20 +24,17 @@ def safe_eval(x):
 
 def get_last_update():
     try:
-        api_url = "https://api.github.com/repos/GioOrna/FidalTracker/commits?path=fidal_meets_data.csv&per_page=1"
-        response = requests.get(api_url, timeout=10, headers={"Accept": "application/vnd.github+json"})
+        response = requests.head(get_url(), timeout=5)
         if response.status_code == 200:
-            data = response.json()
-            if data:
-                commit_date_str = data[0]['commit']['committer']['date']
-                utctime = datetime.strptime(commit_date_str, '%Y-%m-%dT%H:%M:%SZ')
+            last_modified = response.headers.get('Last-Modified')
+            if last_modified:
+                utctime = datetime.strptime(last_modified, '%a, %d %b %Y %H:%M:%S %Z')
                 utctime = utctime.replace(tzinfo=pytz.utc)
                 italy_tz = pytz.timezone("Europe/Rome")
                 local_time = utctime.astimezone(italy_tz)
                 return local_time.strftime("%d/%m/%Y %H:%M")
     except Exception as e:
         print(f"DEBUG: get_last_update failed. Error: {e}")
-
     return "N/A"
 
 def load_data():
@@ -56,7 +53,6 @@ _cache_mtime = None
 
 def get_df():
     global _df_cache, _cache_mtime
-    updated = False
     
     response = requests.head(get_url(), timeout=5)
     if not response.status_code == 200: #if file doesn't exist
@@ -70,9 +66,8 @@ def get_df():
         print(f"Reloading data... (file modified)")
         _df_cache = load_data()
         _cache_mtime = current_mtime
-        updated = True
     
-    return _df_cache, updated
+    return _df_cache
 
 @app.on_event("startup")
 def startup():
@@ -97,7 +92,7 @@ def get_filters():
         "tipi": tipi,
         "currentYear": today.year,
         "currentMonth": today.month,
-        "lastUpdate": get_last_update(),
+        "lastUpdate": _cache_mtime or "",
     }
 
 @app.get("/api/data")
@@ -113,11 +108,9 @@ def get_data(
     page: int = 0,
     page_size: int = 100,
 ):
-    res = get_df()
-    df = res[0]
-    updated = res[1]
+    df = get_df()
     if df.empty:
-        return JSONResponse({"total": 0, "page": 0, "results": []})
+        return JSONResponse({"total": 0, "page": 0, "results": [], "lastUpdate": ""})
 
     if anni:
         anni_list = [int(a) for a in anni.split(",") if a]
@@ -155,7 +148,7 @@ def get_data(
     df["Data Fine"] = df["Data Fine"].dt.strftime("%d/%m/%Y").fillna("")
     df["Categorie"] = df["Categorie"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
     page_df = df.iloc[page * page_size : (page + 1) * page_size]
-    return JSONResponse({"total": total, "page": page, "results": page_df.fillna("").to_dict(orient="records"), "updated": updated})
+    return JSONResponse({"total": total, "page": page, "results": page_df.fillna("").to_dict(orient="records"), "lastUpdate": _cache_mtime or ""})
 
 HTML = r"""<!DOCTYPE html>
 <html lang="it">
@@ -655,6 +648,7 @@ function setSort(s) {
   fetchData(true);
 }
 
+let knownLastUpdate = "";   // what this client last saw
 async function fetchData(resetPage = true) {
   if (resetPage) {
     currentPage = 0;
@@ -678,41 +672,42 @@ async function fetchData(resetPage = true) {
   } else {
     renderCards(data.results, data.total, true);
   }
-  if (data.updated){
+  if (knownLastUpdate && data.lastUpdate && data.lastUpdate !== knownLastUpdate) {
+    knownLastUpdate = data.lastUpdate;
     filtersData = await (await fetch("/api/filters")).json();
     rebuildAll();
     element = document.getElementById("last-update");
-      element.textContent = "📊 Nuovi dati trovati!";
-      element.style.background = "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)";
-      element.style.color = "white";
-      element.style.borderRadius = "50px";
-      element.style.fontSize = "0.9rem";
-      element.style.fontWeight = "bold";
-      element.style.fontFamily = "inherit";
-      element.style.boxShadow = "0 4px 15px rgba(245, 87, 108, 0.4)";
-      element.style.cursor = "pointer";
-      element.style.transition = "all 0.3s ease";
-      element.style.animation = "pop 0.5s ease-in-out";
-      // Auto fade out after 2 seconds
-      setTimeout(() => {
-          element.style.transition = "opacity 0.5s ease";
-          element.style.opacity = "0";
+    element.textContent = "📊 Nuovi dati trovati!";
+    element.style.background = "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)";
+    element.style.color = "white";
+    element.style.borderRadius = "50px";
+    element.style.fontSize = "0.9rem";
+    element.style.fontWeight = "bold";
+    element.style.fontFamily = "inherit";
+    element.style.boxShadow = "0 4px 15px rgba(245, 87, 108, 0.4)";
+    element.style.cursor = "pointer";
+    element.style.transition = "all 0.3s ease";
+    element.style.animation = "pop 0.5s ease-in-out";
+    // Auto fade out after 2 seconds
+    setTimeout(() => {
+        element.style.transition = "opacity 0.5s ease";
+        element.style.opacity = "0";
           
-          // Remove all styles and reset after fade out completes
-          setTimeout(() => {
-              element.style.opacity = "";
-              element.style.background = "";
-              element.style.color = "";
-              element.style.borderRadius = "";
-              element.style.fontSize = "";
-              element.style.fontWeight = "";
-              element.style.fontFamily = "";
-              element.style.boxShadow = "";
-              element.style.cursor = "";
-              element.style.animation = "";
-              element.textContent = "Dati aggiornati al: " + (filtersData.lastUpdate || "N/A");
-          }, 500); // Wait for fade out to complete
-      }, 2000); // Show for 2 seconds
+        // Remove all styles and reset after fade out completes
+        setTimeout(() => {
+            element.style.opacity = "";
+            element.style.background = "";
+            element.style.color = "";
+            element.style.borderRadius = "";
+            element.style.fontSize = "";
+            element.style.fontWeight = "";
+            element.style.fontFamily = "";
+            element.style.boxShadow = "";
+            element.style.cursor = "";
+            element.style.animation = "";
+            element.textContent = "Dati aggiornati al: " + (filtersData.lastUpdate || "N/A");
+        }, 500); // Wait for fade out to complete
+    }, 2000); // Show for 2 seconds
   }
 }
 

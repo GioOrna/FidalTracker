@@ -5,10 +5,9 @@ from datetime import datetime, date
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse
 import pandas as pd
-import uvicorn
+import uvicorn # Not used in Vercel but left this for eventual testing
 import time
 from io import StringIO
-from dateutil import parser
 
 app = FastAPI()
 
@@ -781,5 +780,6 @@ init();
 def root():
     return HTML
 
+# Not used in Vercel but I leave this for eventual testing
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=7860)

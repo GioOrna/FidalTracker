@@ -596,7 +596,8 @@ function closeMob() { document.getElementById("sidebar").classList.remove("mob-o
 
 function extractRaceName(url) {
   if (!url) return "—";
-  const m = url.match(/calendario\/(.+?)\/[^/]+\/?$/);
+  url = url.trim();
+  const m = url.match(/calendario\/(.+?)\/[^/]+\/?$/s);
   if (m) return decodeURIComponent(m[1]).replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
   return url;
 }

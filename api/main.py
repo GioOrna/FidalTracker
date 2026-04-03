@@ -53,8 +53,8 @@ def load_data():
     return df
 
 _df_cache = None
-_cache_mtime = None
-_cache_lastupdate = "N/A"
+_cache_mtime = None #stores sha value (if is different from old one there has been an update)
+_cache_lastupdate = "N/A" #stores the time value of last update 
 
 def get_df():
     global _df_cache, _cache_mtime, _cache_lastupdate
@@ -99,8 +99,8 @@ def get_filters():
         "tipi": tipi,
         "currentYear": today.year,
         "currentMonth": today.month,
-        "lastUpdate": _cache_mtime or "",
-        "lastModified": _cache_mtime or "",       # raw header for client comparison
+        "lastUpdate": _cache_lastupdate or "N/A", # reutnr the time of up-to-date of the data
+        "lastModified": _cache_mtime or "",       # return the sha for comparing if data is up-to-date
     }
 
 @app.get("/api/data")
